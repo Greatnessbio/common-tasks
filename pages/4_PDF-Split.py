@@ -5,9 +5,8 @@ import zipfile
 
 # Function to add PDF chunks to a zip file
 def add_to_zip(zip_file, pdf_chunks):
-    for i, chunk in enumerate(pdf_chunks, start=1):
-        chunk.seek(0)
-        zip_file.writestr(f"chunk_{i}.pdf", chunk.read())
+    for i, chunk_bytes in enumerate(pdf_chunks, start=1):
+        zip_file.writestr(f"chunk_{i}.pdf", chunk_bytes)
 
 # Set the title and description for your Streamlit app
 st.title("PDF Splitter")
