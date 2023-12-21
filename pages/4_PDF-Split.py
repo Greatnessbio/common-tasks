@@ -1,7 +1,6 @@
 import PyPDF2
-import os
 import streamlit as st
-import base64
+import io
 
 # Set the title and description for your Streamlit app
 st.title("PDF Splitter")
@@ -15,10 +14,6 @@ if pdf_file is not None:
     max_chunk_size = st.number_input("Maximum Chunk Size (MB)", min_value=1, value=100)
 
     if st.button("Split PDF"):
-        # Create a directory to store the split chunks
-        output_directory = 'output/'
-        os.makedirs(output_directory, exist_ok=True)
-
         # Open the uploaded PDF file
         with pdf_file as file:
             reader = PyPDF2.PdfReader(file)
@@ -28,28 +23,26 @@ if pdf_file is not None:
             chunk_number = 1
             writer = PyPDF2.PdfWriter()
 
+            # Buffer to store PDF chunks
+            pdf_chunks = []
+
             # Iterate over each page in the PDF
             for page_num, page in enumerate(reader.pages):
-                # Create a temporary PDF file to estimate the page size
-                temp_pdf_path = '/tmp/temp.pdf'
+                # Use in-memory buffer
+                temp_buffer = io.BytesIO()
                 temp_writer = PyPDF2.PdfWriter()
                 temp_writer.add_page(page)
+                temp_writer.write(temp_buffer)
 
-                # Save the temporary PDF file
-                with open(temp_pdf_path, 'wb') as temp_file:
-                    temp_writer.write(temp_file)
-
-                # Get the size of the temporary PDF file
-                temp_file_size = os.path.getsize(temp_pdf_path)
+                # Get the size of the buffer
+                temp_file_size = temp_buffer.tell()
 
                 # Check if adding the current page would exceed the maximum chunk size
                 if current_chunk_size + temp_file_size > max_chunk_size * 1024 * 1024:
-                    # Generate the output file path for the current chunk
-                    output_file = os.path.join(output_directory, f'chunk_{chunk_number}.pdf')
-
-                    # Write the current chunk to the output file
-                    with open(output_file, 'wb') as output:
-                        writer.write(output)
+                    # Save the current chunk to buffer
+                    chunk_buffer = io.BytesIO()
+                    writer.write(chunk_buffer)
+                    pdf_chunks.append(chunk_buffer)
 
                     # Reset the variables for the new chunk
                     current_chunk_size = 0
@@ -62,23 +55,13 @@ if pdf_file is not None:
 
             # Create the last chunk if there are remaining pages
             if current_chunk_size > 0:
-                # Generate the output file path for the last chunk
-                output_file = os.path.join(output_directory, f'chunk_{chunk_number}.pdf')
+                chunk_buffer = io.BytesIO()
+                writer.write(chunk_buffer)
+                pdf_chunks.append(chunk_buffer)
 
-                # Write the last chunk to the output file
-                with open(output_file, 'wb') as output:
-                    writer.write(output)
-
-        # Provide a download button for the generated chunks
-        st.success("PDF split into smaller chunks.")
-        st.write("Download the split chunks:")
-        for i in range(1, chunk_number + 1):
-            chunk_path = os.path.join(output_directory, f'chunk_{i}.pdf')
-            with open(chunk_path, 'rb') as file:
-                # Read the file contents
-                pdf_contents = file.read()
-                # Encode the file contents in base64
-                pdf_base64 = base64.b64encode(pdf_contents).decode('utf-8')
-                # Create a download button for the PDF chunk
-                st.download_button(f"Download Chunk {i}", pdf_base64, key=f"chunk_{i}")
-
+            # Provide a download button for the generated chunks
+            st.success("PDF split into smaller chunks.")
+            st.write("Download the split chunks:")
+            for i, chunk in enumerate(pdf_chunks, start=1):
+                chunk.seek(0)
+                st.download_button(f"Download Chunk {i}", chunk, file_name=f"chunk_{i}.pdf", mime="application/octet-stream")
