@@ -12,40 +12,86 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import PyPDF2
+import os
 import streamlit as st
-from streamlit.logger import get_logger
+import base64
 
-LOGGER = get_logger(__name__)
+# Set the title and description for your Streamlit app
+st.title("PDF Splitter")
+st.write("This app allows you to split a PDF into smaller chunks.")
 
+# Upload a PDF file
+pdf_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+if pdf_file is not None:
+    # Get the maximum chunk size from the user
+    max_chunk_size = st.number_input("Maximum Chunk Size (MB)", min_value=1, value=100)
 
-    st.write("# Welcome to Streamlit! 👋")
+    if st.button("Split PDF"):
+        # Create a directory to store the split chunks
+        output_directory = 'output/'
+        os.makedirs(output_directory, exist_ok=True)
 
-    st.sidebar.success("Select a demo above.")
+        # Open the uploaded PDF file
+        with pdf_file as file:
+            reader = PyPDF2.PdfReader(file)
 
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+            # Initialize variables to keep track of the current chunk size and the pages in the chunk
+            current_chunk_size = 0
+            chunk_number = 1
+            writer = PyPDF2.PdfWriter()
 
+            # Iterate over each page in the PDF
+            for page_num, page in enumerate(reader.pages):
+                # Create a temporary PDF file to estimate the page size
+                temp_pdf_path = '/tmp/temp.pdf'
+                temp_writer = PyPDF2.PdfWriter()
+                temp_writer.add_page(page)
 
-if __name__ == "__main__":
-    run()
+                # Save the temporary PDF file
+                with open(temp_pdf_path, 'wb') as temp_file:
+                    temp_writer.write(temp_file)
+
+                # Get the size of the temporary PDF file
+                temp_file_size = os.path.getsize(temp_pdf_path)
+
+                # Check if adding the current page would exceed the maximum chunk size
+                if current_chunk_size + temp_file_size > max_chunk_size * 1024 * 1024:
+                    # Generate the output file path for the current chunk
+                    output_file = os.path.join(output_directory, f'chunk_{chunk_number}.pdf')
+
+                    # Write the current chunk to the output file
+                    with open(output_file, 'wb') as output:
+                        writer.write(output)
+
+                    # Reset the variables for the new chunk
+                    current_chunk_size = 0
+                    chunk_number += 1
+                    writer = PyPDF2.PdfWriter()
+
+                # Add the current page to the current chunk
+                writer.add_page(page)
+                current_chunk_size += temp_file_size
+
+            # Create the last chunk if there are remaining pages
+            if current_chunk_size > 0:
+                # Generate the output file path for the last chunk
+                output_file = os.path.join(output_directory, f'chunk_{chunk_number}.pdf')
+
+                # Write the last chunk to the output file
+                with open(output_file, 'wb') as output:
+                    writer.write(output)
+
+        # Provide download links for the generated chunks
+        st.success("PDF split into smaller chunks.")
+        st.write("Download the split chunks:")
+        for i in range(1, chunk_number + 1):
+            chunk_path = os.path.join(output_directory, f'chunk_{i}.pdf')
+            with open(chunk_path, 'rb') as file:
+                # Read the file contents
+                pdf_contents = file.read()
+                # Encode the file contents in base64
+                pdf_base64 = base64.b64encode(pdf_contents).decode('utf-8')
+                # Create a download link for the PDF chunk
+                st.markdown(f'<a href="data:application/pdf;base64,{pdf_base64}" download="chunk_{i}.pdf">Chunk {i}</a>', unsafe_allow_html=True)
