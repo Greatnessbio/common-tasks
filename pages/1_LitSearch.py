@@ -5,12 +5,12 @@ from datetime import datetime
 
 def parse_date(date_string):
     try:
-        return datetime.strptime(date_string, '%d %b %Y') if date_string is not None else None
+        return datetime.strptime(date_string, '%Y-%m-%d') if date_string is not None else None
     except ValueError:
         return None
 
 def search_biorxiv(query):
-    url = f"https://www.biorxiv.org/search/{query}"
+    url = f"https://www.biorxiv.org/search/{query.replace(' ', '+')}"
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     articles = soup.find_all('li', class_='search-result')
@@ -30,7 +30,7 @@ def search_biorxiv(query):
     return sorted(results, key=lambda x: x[3] if x[3] is not None else datetime.min, reverse=True)
 
 def search_pubmed(query):
-    url = f"https://pubmed.ncbi.nlm.nih.gov/?term={query}"
+    url = f"https://pubmed.ncbi.nlm.nih.gov/?term={query.replace(' ', '+')}"
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     articles = soup.find_all('article', class_='full-docsum')
