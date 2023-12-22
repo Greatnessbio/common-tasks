@@ -5,9 +5,8 @@ from datetime import datetime
 import re
 
 def parse_date(date_string):
-    # Adjust this function based on the date format of the website
     try:
-        return datetime.strptime(date_string, '%d %b %Y')
+        return datetime.strptime(date_string, '%d %b %Y') if date_string is not None else None
     except ValueError:
         return None
 
