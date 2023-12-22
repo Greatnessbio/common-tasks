@@ -7,3 +7,4 @@ PyPDF2
 feedparser
 requests
 beautifulsoup4
+lxml
