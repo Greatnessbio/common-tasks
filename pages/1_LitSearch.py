@@ -9,12 +9,12 @@ def parse_date(date_string):
     except ValueError:
         return None
 
-def format_biorxiv_result(title, authors, pub_date_str, journal, doi_link):
-    formatted_result = f"{title}\n{authors}\n{journal} {pub_date_str}; doi: {doi_link}"
+def format_biorxiv_result(title, authors, pub_date_str, journal, doi_link, link):
+    formatted_result = f"**[Title: {title}]({link})**\nAuthors: {authors}\nPublished in: {journal} on {pub_date_str}\nDOI: {doi_link}"
     return formatted_result
 
-def format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary):
-    formatted_result = f"{title}\n{authors}\n{journal}. {pub_date_str}. doi: {doi_link}.\n{summary}"
+def format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary, link):
+    formatted_result = f"**[Title: {title}]({link})**\nAuthors: {authors}\nPublished in: {journal} on {pub_date_str}\nDOI: {doi_link}\nSummary: {summary}"
     return formatted_result
 
 def search_biorxiv(query):
@@ -65,14 +65,14 @@ if st.button("Search"):
             biorxiv_results = search_biorxiv(query)
             st.subheader("bioRxiv Results")
             for title, authors, pub_date_str, _, summary, journal, doi_link, link in biorxiv_results:
-                formatted_result = format_biorxiv_result(title, authors, pub_date_str, journal, doi_link)
-                st.markdown(f"**[{formatted_result}]({link})**")
+                formatted_result = format_biorxiv_result(title, authors, pub_date_str, journal, doi_link, link)
+                st.markdown(formatted_result)
 
         with st.spinner("Searching PubMed..."):
             pubmed_results = search_pubmed(query)
             st.subheader("PubMed Results")
             for title, authors, pub_date_str, _, summary, journal, doi_link, link in pubmed_results:
-                formatted_result = format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary)
-                st.markdown(f"**[{formatted_result}]({link})**")
+                formatted_result = format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary, link)
+                st.markdown(formatted_result)
     else:
         st.warning("Please enter a search query.")
