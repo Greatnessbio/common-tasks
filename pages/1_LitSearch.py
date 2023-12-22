@@ -63,7 +63,10 @@ if st.button("Search"):
                 st.write(f"Authors: {authors}")
                 st.write(f"Published on: {pub_date_str}")
                 st.write(f"Journal: {journal}")
-                st.markdown(f"DOI: [{doi_link}]({doi_link})") if doi_link is not None else st.write("DOI: Not available")
+                if doi_link:
+                    st.markdown(f"DOI: [{doi_link}]({doi_link})")
+                else:
+                    st.write("DOI: Not available")
                 st.write(f"Summary: {summary}")
 
         with st.spinner("Searching PubMed..."):
@@ -74,7 +77,10 @@ if st.button("Search"):
                 st.write(f"Authors: {authors}")
                 st.write(f"Published on: {pub_date_str}")
                 st.write(f"Journal: {journal}")
-                st.markdown(f"DOI: [{doi_link}]({doi_link})") if doi_link else st.write("DOI: Not available")
+                if doi_link:
+                    st.markdown(f"DOI: [{doi_link}]({doi_link})")
+                else:
+                    st.write("DOI: Not available")
                 st.write(f"Summary: {summary}")
     else:
         st.warning("Please enter a search query.")
