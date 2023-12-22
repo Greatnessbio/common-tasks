@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import re
 
 def parse_date(date_string):
     try:
@@ -26,7 +25,9 @@ def search_biorxiv(query):
         doi_link = "https://doi.org/" + article.find('span', class_='highwire-cite-metadata-doi').get_text().strip() if article.find('span', class_='highwire-cite-metadata-doi') else None
         link = "https://www.biorxiv.org" + article.find('a', class_='highwire-cite-linked-title')['href']
         results.append((title, authors, pub_date_str, pub_date, summary, journal, doi_link, link))
-    return sorted(results, key=lambda x: x[3], reverse=True)  # Sort by publication date
+
+    # Sort by publication date, placing None values at the end
+    return sorted(results, key=lambda x: x[3] if x[3] is not None else datetime.min, reverse=True)
 
 def search_pubmed(query):
     url = f"https://pubmed.ncbi.nlm.nih.gov/?term={query}"
@@ -40,12 +41,13 @@ def search_pubmed(query):
         authors = article.find('span', class_='docsum-authors').get_text().strip() if article.find('span', class_='docsum-authors') else 'No authors listed'
         pub_date_str = article.find('span', class_='docsum-journal-citation').get_text().strip().split('.')[0] if article.find('span', class_='docsum-journal-citation') else None
         pub_date = parse_date(pub_date_str)
-        journal = re.search(r'\. (\w+[\w\s]+)\.', article.find('span', class_='docsum-journal-citation').get_text().strip()).group(1) if article.find('span', class_='docsum-journal-citation') else None
-        doi = article.find('span', class_='docsum-doi').get_text().strip() if article.find('span', class_='docsum-doi') else None
-        doi_link = f"https://doi.org/{doi}" if doi else None
+        journal = article.find('span', class_='docsum-journal-citation').get_text().strip().split('.')[1].strip() if article.find('span', class_='docsum-journal-citation') else None
+        doi_link = f"https://doi.org/{article.find('span', class_='docsum-doi').get_text().strip()}" if article.find('span', class_='docsum-doi') else None
         link = "https://pubmed.ncbi.nlm.nih.gov" + article.find('a', class_='docsum-title')['href']
         results.append((title, authors, pub_date_str, pub_date, summary, journal, doi_link, link))
-    return sorted(results, key=lambda x: x[3], reverse=True)  # Sort by publication date
+
+    # Sort by publication date, placing None values at the end
+    return sorted(results, key=lambda x: x[3] if x[3] is not None else datetime.min, reverse=True)
 
 st.title("Literature Search App")
 
