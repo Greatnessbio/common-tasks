@@ -5,9 +5,17 @@ from datetime import datetime
 
 def parse_date(date_string):
     try:
-        return datetime.strptime(date_string, '%d %b %Y') if date_string is not None else None
+        return datetime.strptime(date_string, '%Y-%m-%d') if date_string is not None else None
     except ValueError:
         return None
+
+def format_biorxiv_result(title, authors, pub_date_str, journal, doi_link):
+    formatted_result = f"{title}\n{authors}\n{journal} {pub_date_str}; doi: {doi_link}"
+    return formatted_result
+
+def format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary):
+    formatted_result = f"{title}\n{authors}\n{journal}. {pub_date_str}. doi: {doi_link}.\n{summary}"
+    return formatted_result
 
 def search_biorxiv(query):
     formatted_query = query.replace(' ', '%20')
@@ -39,11 +47,11 @@ def search_pubmed(query):
         title = article.find('a', class_='docsum-title').get_text().strip()
         summary = article.find('div', class_='full-view-snippet').get_text().strip() if article.find('div', class_='full-view-snippet') else 'No summary available'
         authors = article.find('span', class_='docsum-authors').get_text().strip() if article.find('span', class_='docsum-authors') else 'No authors listed'
-        pub_date_str = article.find('span', class='docsum-journal-citation').get_text().strip().split('.')[0] if article.find('span', class='docsum-journal-citation') else None
+        pub_date_str = article.find('span', class_='docsum-journal-citation').get_text().strip().split('.')[0] if article.find('span', class_='docsum-journal-citation') else None
         pub_date = parse_date(pub_date_str)
-        journal = article.find('span', class='docsum-journal-citation').get_text().strip().split('.')[1].strip() if article.find('span', class='docsum-journal-citation') else None
-        doi_link = f"https://doi.org/{article.find('span', class='docsum-doi').get_text().strip()}" if article.find('span', class='docsum-doi') else None
-        link = "https://pubmed.ncbi.nlm.nih.gov" + article.find('a', class='docsum-title')['href']
+        journal = article.find('span', class_='docsum-journal-citation').get_text().strip().split('.')[1].strip() if article.find('span', class_='docsum-journal-citation') else None
+        doi_link = f"https://doi.org/{article.find('span', class_='docsum-doi').get_text().strip()}" if article.find('span', class_='docsum-doi') else None
+        link = "https://pubmed.ncbi.nlm.nih.gov" + article.find('a', class_='docsum-title')['href']
         results.append((title, authors, pub_date_str, pub_date, summary, journal, doi_link, link))
     return results
 
@@ -57,28 +65,14 @@ if st.button("Search"):
             biorxiv_results = search_biorxiv(query)
             st.subheader("bioRxiv Results")
             for title, authors, pub_date_str, _, summary, journal, doi_link, link in biorxiv_results:
-                st.markdown(f"**[{title}]({link})**")
-                st.write(f"Authors: {authors}")
-                st.write(f"Published on: {pub_date_str}")
-                st.write(f"Journal: {journal}")
-                if doi_link:
-                    st.markdown(f"DOI: [{doi_link}]({doi_link})")
-                else:
-                    st.write("DOI: Not available")
-                st.write(f"Summary: {summary}")
+                formatted_result = format_biorxiv_result(title, authors, pub_date_str, journal, doi_link)
+                st.markdown(f"**[{formatted_result}]({link})**")
 
         with st.spinner("Searching PubMed..."):
             pubmed_results = search_pubmed(query)
             st.subheader("PubMed Results")
             for title, authors, pub_date_str, _, summary, journal, doi_link, link in pubmed_results:
-                st.markdown(f"**[{title}]({link})**")
-                st.write(f"Authors: {authors}")
-                st.write(f"Published on: {pub_date_str}")
-                st.write(f"Journal: {journal}")
-                if doi_link:
-                    st.markdown(f"DOI: [{doi_link}]({doi_link})")
-                else:
-                    st.write("DOI: Not available")
-                st.write(f"Summary: {summary}")
+                formatted_result = format_pubmed_result(title, authors, pub_date_str, journal, doi_link, summary)
+                st.markdown(f"**[{formatted_result}]({link})**")
     else:
         st.warning("Please enter a search query.")
