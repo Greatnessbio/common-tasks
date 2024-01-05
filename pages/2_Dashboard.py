@@ -1,70 +1,39 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
-# Create a Streamlit app
-st.title("CSV Data Explorer")
+# Function to load and preprocess the data
+def load_data(uploaded_file):
+    # Read the uploaded CSV file into a DataFrame
+    df = pd.read_csv(uploaded_file, delimiter='\t', skiprows=11, nrows=28)
+    return df
 
-# Allow the user to upload multiple CSV files
-uploaded_files = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
+# Streamlit app layout
+st.title("Google Analytics Acquisitions Data Analysis")
 
-# Create a dictionary to store dataframes
-dfs = {}
+# Create an upload file widget
+uploaded_file = st.file_uploader("Upload the Google Analytics CSV file", type=["csv"])
 
-# Check if files have been uploaded
-if uploaded_files:
-    for uploaded_file in uploaded_files:
-        # Read each uploaded CSV file into a separate dataframe
-        df = pd.read_csv(uploaded_file)
-        file_name = uploaded_file.name
+if uploaded_file is not None:
+    df = load_data(uploaded_file)
 
-        # Store the dataframe in the dictionary with the file name as the key
-        dfs[file_name] = df
+    # Display the DataFrame
+    st.write("Uploaded Data:")
+    st.write(df)
 
-# Sidebar for data exploration
-st.sidebar.title("Data Exploration")
+    # Create visualizations
+    st.subheader("Line Chart - Users")
+    plt.plot(df['Nth day'], df['Users'])
+    plt.xlabel("Nth day")
+    plt.ylabel("Users")
+    st.pyplot()
 
-# Display options for selecting a CSV file's dataframe
-if len(dfs) > 0:
-    selected_file = st.sidebar.selectbox("Select a CSV file", list(dfs.keys()))
-    
-    # Display options for filtering and sorting
-    st.sidebar.subheader("Filter and Sort Options")
-    
-    # Filter by column values
-    for column in dfs[selected_file].columns:
-        filter_value = st.sidebar.text_input(f"Filter {column}")
-        if filter_value:
-            dfs[selected_file] = dfs[selected_file][dfs[selected_file][column].astype(str).str.contains(filter_value, case=False, na=False)]
-    
-    # Sort by column
-    sort_column = st.sidebar.selectbox("Sort by column", dfs[selected_file].columns)
-    dfs[selected_file] = dfs[selected_file].sort_values(sort_column, ascending=True)
-    
-    # Display the selected dataframe
-    st.subheader(f"Data from {selected_file}")
-    st.write(dfs[selected_file])
-    
-    # Chart area
-    st.subheader("Chart Area")
-    
-    # Select columns for visualization
-    selected_columns = st.multiselect("Select columns for visualization", dfs[selected_file].columns)
-    
-    # Choose chart type
-    chart_type = st.selectbox("Select chart type", ["Bar Chart", "Line Chart", "Scatter Plot"])
-    
-    # Create charts based on user selections
-    if selected_columns and chart_type:
-        chart_data = dfs[selected_file][selected_columns]
-        st.write(f"### {chart_type} of Selected Columns")
-        
-        if chart_type == "Bar Chart":
-            st.bar_chart(chart_data)
-        elif chart_type == "Line Chart":
-            st.line_chart(chart_data)
-        elif chart_type == "Scatter Plot":
-            st.scatter_chart(chart_data)
-else:
-    st.sidebar.warning("No CSV files uploaded. Please upload CSV files to explore.")
+    st.subheader("Line Chart - New Users")
+    plt.plot(df['Nth day'], df['New users'])
+    plt.xlabel("Nth day")
+    plt.ylabel("New Users")
+    st.pyplot()
+
+    st.subheader("Bar Chart - First user default channel group")
+    df_bar = df.groupby('First user default channel group')['New users'].sum()
+    st.bar_chart(df_bar)
