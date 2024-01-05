@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 def load_data(uploaded_file):
     # Read the uploaded CSV file into a DataFrame
     df = pd.read_csv(uploaded_file, delimiter='\t', skiprows=11, nrows=28)
+    
+    # Clean column names by stripping leading and trailing whitespace
+    df.columns = df.columns.str.strip()
+    
     return df
 
 # Streamlit app layout
