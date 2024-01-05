@@ -2,18 +2,18 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-# Function to split the CSV into sections and return a list of DataFrames
+# Function to split the CSV into sections and return a dictionary of DataFrames
 def split_csv_sections(uploaded_file):
     content = uploaded_file.getvalue().decode("utf-8")
     sections = content.split('#\n\n')
-
-    data_sections = []
-
+    data_sections = {}
+    
     for section in sections:
         if section.strip():
             section_io = StringIO(section)
             section_df = pd.read_csv(section_io, sep='\t', skiprows=2)
-            data_sections.append(section_df)
+            section_name = section_df.columns[0]
+            data_sections[section_name] = section_df
             
     return data_sections
 
@@ -28,6 +28,6 @@ if uploaded_file is not None:
 
     # Display individual DataFrames for each section with headers
     st.write("Individual DataFrames:")
-    for idx, section_df in enumerate(data_sections, start=1):
-        st.subheader(f"Section {idx}")
+    for section_name, section_df in data_sections.items():
+        st.subheader(section_name)
         st.write(section_df)
