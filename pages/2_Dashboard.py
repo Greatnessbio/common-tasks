@@ -7,17 +7,18 @@ st.title("Google Search Console Data")
 # Allow the user to upload multiple CSV files
 uploaded_files = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
 
-# Create an empty dataframe to store the combined data
-combined_df = pd.DataFrame()
+# Create an empty list to store dataframes
+dfs = []
 
 # Check if files have been uploaded
 if uploaded_files:
     for uploaded_file in uploaded_files:
         # Read each uploaded CSV file into a separate dataframe
         df = pd.read_csv(uploaded_file)
-        
-        # Append the data to the combined dataframe
-        combined_df = combined_df.append(df, ignore_index=True)
+        dfs.append(df)
+
+    # Concatenate the dataframes in the list
+    combined_df = pd.concat(dfs, ignore_index=True)
 
     # Display the combined dataframe
     st.subheader("Combined Data")
