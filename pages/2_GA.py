@@ -3,47 +3,53 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from io import StringIO
 
-# Function to split the CSV into sections and return a list of DataFrames
-def split_csv_sections(uploaded_file):
-    content = uploaded_file.getvalue().decode("utf-8")
-    sections = content.split('#\n\n')
+# Function to find the start of the actual data in the CSV file and parse it
+def parse_csv(uploaded_file):
+    # Decode the uploaded file
+    file_content = uploaded_file.getvalue().decode("utf-8")
+    # Split the content into lines
+    lines = file_content.split('\n')
+    # Find the start of the data section (after headers)
+    for i, line in enumerate(lines):
+        if 'Nth day,Users' in line:  # This identifies the header of the data section
+            header_line = i
+            break
+    else:
+        st.error("Data header not found.")
+        return None
 
-    data_sections = []
+    # Extract the data section
+    data_lines = lines[header_line:]
+    data_str = '\n'.join(data_lines)
+    data_io = StringIO(data_str)
 
-    for section in sections:
-        if section.strip():
-            section_io = StringIO(section)
-            section_df = pd.read_csv(section_io, sep='\t', skiprows=2)
-            data_sections.append(section_df)
-            
-    return data_sections
+    # Use the first line as header and read the rest of the lines as data
+    df = pd.read_csv(data_io, header=0)
+    return df
 
-# Function to plot the data from a DataFrame
-def plot_data(df):
-    if df.shape[1] == 2:
-        plt.figure(figsize=(8, 6))
-        plt.plot(df.iloc[:, 0], df.iloc[:, 1], marker='o')
-        plt.xlabel(df.columns[0])
-        plt.ylabel(df.columns[1])
-        plt.title(f"Plot for {df.columns[0]} vs {df.columns[1]}")
-        st.pyplot()
+# Function to create a plot from the DataFrame
+def create_plot(df):
+    plt.figure(figsize=(10, 5))
+    plt.plot(df['Nth day'], df['Users'], marker='o')
+    plt.title('User Acquisition Over Time')
+    plt.xlabel('Nth Day')
+    plt.ylabel('Users')
+    plt.tight_layout()
+    return plt
 
 # Streamlit app layout
-st.title("Google Analytics Acquisitions Data Sections")
+st.title("Google Analytics Data Visualization")
 
-# Create an upload file widget
+# File uploader widget
 uploaded_file = st.file_uploader("Upload the Google Analytics CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    data_sections = split_csv_sections(uploaded_file)
+    # Parse the uploaded CSV file
+    df = parse_csv(uploaded_file)
+    
+    if df is not None:
+        # Display the DataFrame
+        st.write(df)
 
-    # Display individual DataFrames for each section with headers
-    st.write("Individual DataFrames:")
-    for section_df in data_sections:
-        st.subheader("Section")
-        st.write(section_df)
-
-    # Plot the data
-    for section_df in data_sections:
-        if section_df.shape[1] == 2:
-            plot_data(section_df)
+        # Create and display the plot
+        st.pyplot(create_plot(df))
