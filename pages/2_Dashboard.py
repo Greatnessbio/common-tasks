@@ -1,22 +1,29 @@
 import streamlit as st
 import pandas as pd
 
-# Read the Google Search Console data into a DataFrame
-df = pd.read_csv("google_search_console_data.csv")
-
-# Create a tab for each of the metrics
+# Create a Streamlit app
 st.title("Google Search Console Data")
-st.subheader("Top Pages")
-st.table(df[["Page", "Clicks", "Impressions", "CTR", "Position"]].head(10))
 
-st.subheader("Clicks")
-st.bar_chart(df["Clicks"])
+# Allow the user to upload a CSV file
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
-st.subheader("Impressions")
-st.line_chart(df["Impressions"])
+# Check if a file has been uploaded
+if uploaded_file is not None:
+    # Read the uploaded CSV file into a DataFrame
+    df = pd.read_csv(uploaded_file)
 
-st.subheader("CTR")
-st.area_chart(df["CTR"])
+    # Display the DataFrame and visualizations
+    st.subheader("Top Pages")
+    st.table(df[["Page", "Clicks", "Impressions", "CTR", "Position"]].head(10))
 
-st.subheader("Position")
-st.scatter_chart(df["Position"], df["Impressions"])  # Use scatter_chart here
+    st.subheader("Clicks")
+    st.bar_chart(df["Clicks"])
+
+    st.subheader("Impressions")
+    st.line_chart(df["Impressions"])
+
+    st.subheader("CTR")
+    st.area_chart(df["CTR"])
+
+    st.subheader("Position")
+    st.scatter_chart(df["Position"], df["Impressions"])
