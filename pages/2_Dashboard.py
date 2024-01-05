@@ -23,10 +23,13 @@ if uploaded_files:
     # Display a dropdown to select the dataframe
     selected_df = st.selectbox("Select a DataFrame", list(dfs.keys()))
 
+    # Create a checkbox list to select columns to display
+    selected_columns = st.multiselect("Select columns to display", df.columns)
+
     # Display the selected dataframe
     st.subheader(f"Data from {selected_df}")
-    st.write(dfs[selected_df])
+    st.write(dfs[selected_df][selected_columns])
 
-    # Create charts or visualizations for the selected dataframe
+    # Create charts or visualizations for the selected columns
     st.subheader(f"Chart for {selected_df}")
-    # Add your charting code here using dfs[selected_df] as the dataframe
+    # Add your charting code here using dfs[selected_df] and selected_columns
