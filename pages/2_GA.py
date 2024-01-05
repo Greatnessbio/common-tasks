@@ -1,36 +1,22 @@
 import streamlit as st
 import pandas as pd
-from io import StringIO
 
-# Function to split the CSV into sections and return a list of DataFrames
-def split_csv_sections(uploaded_file):
-    content = uploaded_file.getvalue().decode("utf-8")
-    sections = content.split('\n#\n')
-
-    data_sections = []
-
-    for section in sections:
-        if section.strip():
-            section_io = StringIO(section)
-            section_lines = section_io.readlines()
-            section_name = section_lines[0].strip()  # Extract section name
-            section_data = section_io.read()  # Read section data
-            data_sections.append((section_name, section_data))
-            
-    return data_sections
-
-# Streamlit app layout
-st.title("Google Analytics Acquisitions Data Sections")
-
-# Create an upload file widget
-uploaded_file = st.file_uploader("Upload the Google Analytics CSV file", type=["csv"])
+# File uploader
+uploaded_file = st.file_uploader("Choose a CSV file")
 
 if uploaded_file is not None:
-    data_sections = split_csv_sections(uploaded_file)
+    df = pd.read_csv(uploaded_file)
 
-    # Display individual DataFrames for each section with headers
-    st.write("Individual DataFrames:")
-    for section_name, section_data in data_sections:
-        st.subheader(section_name)
-        df = pd.read_csv(StringIO(section_data), sep='\t', skiprows=2)
-        st.write(df)
+    # Identify unique sets of data based on combinations of values in multiple columns
+    unique_sets = df.groupby(list(df.columns)).size().reset_index(name='count')
+    unique_sets = unique_sets[unique_sets['count'] > 1].drop('count', axis=1)  # Keep only those with multiple occurrences
+
+    # Create separate tables for each unique set
+    for index, row in unique_sets.iterrows():
+        filtered_df = df.loc[(df[row[0]] == row[1]) & (df[row[2]] == row[3])]  # Filter based on all column values
+        st.subheader(f"Table for unique combination: {row.to_list()}")
+        st.dataframe(filtered_df)
+        st.markdown("---")  # Separator between tables
+
+else:
+    st.write("Please upload a CSV file to proceed.")
