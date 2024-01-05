@@ -7,23 +7,26 @@ st.title("Google Search Console Data")
 # Allow the user to upload multiple CSV files
 uploaded_files = st.file_uploader("Upload CSV files", type=["csv"], accept_multiple_files=True)
 
-# Create an empty list to store dataframes
-dfs = []
+# Create a dictionary to store dataframes
+dfs = {}
 
 # Check if files have been uploaded
 if uploaded_files:
     for uploaded_file in uploaded_files:
         # Read each uploaded CSV file into a separate dataframe
         df = pd.read_csv(uploaded_file)
-        dfs.append(df)
+        file_name = uploaded_file.name
 
-    # Concatenate the dataframes in the list
-    combined_df = pd.concat(dfs, ignore_index=True)
+        # Store the dataframe in the dictionary with the file name as the key
+        dfs[file_name] = df
 
-    # Display the combined dataframe
-    st.subheader("Combined Data")
-    st.write(combined_df)
+    # Display a dropdown to select the dataframe
+    selected_df = st.selectbox("Select a DataFrame", list(dfs.keys()))
 
-    # Create a chart using data from the combined dataframe
-    st.subheader("Combined Chart")
-    st.bar_chart(combined_df["Clicks"])
+    # Display the selected dataframe
+    st.subheader(f"Data from {selected_df}")
+    st.write(dfs[selected_df])
+
+    # Create charts or visualizations for the selected dataframe
+    st.subheader(f"Chart for {selected_df}")
+    # Add your charting code here using dfs[selected_df] as the dataframe
