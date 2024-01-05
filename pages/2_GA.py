@@ -1,32 +1,26 @@
 import pandas as pd
 import streamlit as st
 
-# Load the entire CSV file
-df = pd.read_csv('your_file.csv', header=None)
+# Upload the CSV file
+uploaded_file = st.file_uploader("Upload your CSV file here...", type='csv')
 
-# Initialize an empty dictionary to hold your datasets
-datasets = {}
+if uploaded_file is not None:
+    # Read the entire CSV file
+    data = pd.read_csv(uploaded_file)
 
-# Initialize variables to hold the current dataset and column names
-current_dataset = None
-column_names = None
+    # Find the indices of the headers
+    headers = ["Nth day\tUsers", "Nth day\tNew users", "First user default channel group\tNew users", 
+               "Session default channel group\tSessions", "Session Google Ads campaign\tSessions", "Cohort\tLTV"]
+    indices = {header: data.index[data[0] == header][0] for header in headers}
 
-# Iterate over the DataFrame by row
-for idx, row in df.iterrows():
-    # If this row contains metadata (identified by checking if the first cell starts with '#')
-    if str(row[0]).startswith('#'):
-        # This row is metadata, so update the current dataset and column names
-        current_dataset = row[0]
-        column_names = [row[0], row[1]]
-        # Create a new DataFrame for this dataset
-        datasets[current_dataset] = pd.DataFrame(columns=column_names)
-    elif current_dataset is not None:
-        # This row is data, so add it to the current dataset
-        datasets[current_dataset] = datasets[current_dataset].append(pd.Series(row.values, index=column_names), ignore_index=True)
+    # Create a dictionary of DataFrames
+    dfs = {}
+    for i, header in enumerate(headers):
+        start = indices[header] + 1
+        end = indices[headers[i + 1]] if i + 1 < len(headers) else len(data)
+        dfs[header] = pd.DataFrame(data[start:end][0].str.split('\t').tolist(), columns=data.iloc[start - 1][0].split('\t'))
 
-# Now, 'datasets' is a dictionary that maps metadata to DataFrames
-
-# Use Streamlit to display the datasets
-for metadata, dataset in datasets.items():
-    st.write(f"Dataset for {metadata}:")
-    st.dataframe(dataset)
+    # Display the DataFrames
+    for header, df in dfs.items():
+        st.write(f"DataFrame for {header}:")
+        st.dataframe(df)
