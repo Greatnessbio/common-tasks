@@ -2,14 +2,13 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Function to load and preprocess the data
-def load_data(uploaded_file):
-    # Read the uploaded CSV file into a DataFrame
+# Function to load and preprocess a specific section of the data
+def load_data_section(uploaded_file, section_name):
     df = pd.read_csv(uploaded_file, delimiter='\t', skiprows=11, nrows=28)
-    
+
     # Clean column names by stripping leading and trailing whitespace
     df.columns = df.columns.str.strip()
-    
+
     return df
 
 # Streamlit app layout
@@ -19,25 +18,31 @@ st.title("Google Analytics Acquisitions Data Analysis")
 uploaded_file = st.file_uploader("Upload the Google Analytics CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    df = load_data(uploaded_file)
+    data_sections = {
+        "Users": load_data_section(uploaded_file, "Nth day Users"),
+        "New Users": load_data_section(uploaded_file, "Nth day New users"),
+        "First User Default Channel Group": load_data_section(uploaded_file, "First user default channel group New users"),
+        "Session Default Channel Group": load_data_section(uploaded_file, "Session default channel group Sessions"),
+        "Session Google Ads Campaign": load_data_section(uploaded_file, "Session Google Ads campaign Sessions"),
+        "Cohort LTV": load_data_section(uploaded_file, "Cohort LTV")
+    }
 
-    # Display the DataFrame
-    st.write("Uploaded Data:")
-    st.write(df)
+    # Allow users to select a data section
+    selected_section = st.selectbox("Select a data section", list(data_sections.keys()))
 
-    # Create visualizations
-    st.subheader("Line Chart - Users")
-    plt.plot(df['Nth day'], df['Users'])
-    plt.xlabel("Nth day")
-    plt.ylabel("Users")
-    st.pyplot()
+    # Display the selected DataFrame
+    st.write(f"Selected Data Section: {selected_section}")
+    st.write(data_sections[selected_section])
 
-    st.subheader("Line Chart - New Users")
-    plt.plot(df['Nth day'], df['New users'])
-    plt.xlabel("Nth day")
-    plt.ylabel("New Users")
-    st.pyplot()
+    # Create visualizations based on the selected section
+    if selected_section in ["Users", "New Users"]:
+        st.subheader("Line Chart")
+        plt.plot(data_sections[selected_section]['Nth day'], data_sections[selected_section][selected_section])
+        plt.xlabel("Nth day")
+        plt.ylabel(selected_section)
+        st.pyplot()
 
-    st.subheader("Bar Chart - First user default channel group")
-    df_bar = df.groupby('First user default channel group')['New users'].sum()
-    st.bar_chart(df_bar)
+    elif selected_section == "First User Default Channel Group":
+        st.subheader("Bar Chart")
+        df_bar = data_sections[selected_section].groupby('First user default channel group')['New users'].sum()
+        st.bar_chart(df_bar)
