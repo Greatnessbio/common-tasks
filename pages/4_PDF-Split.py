@@ -2,11 +2,13 @@ import PyPDF2
 import streamlit as st
 import io
 import zipfile
+import os
 
 # Function to add PDF chunks to a zip file
-def add_to_zip(zip_file, pdf_chunks):
+def add_to_zip(zip_file, pdf_chunks, file_name):
     for i, chunk_bytes in enumerate(pdf_chunks, start=1):
-        zip_file.writestr(f"chunk_{i}.pdf", chunk_bytes)
+        chunk_name = f"{os.path.splitext(file_name)[0]}_{i}.pdf"
+        zip_file.writestr(chunk_name, chunk_bytes)
 
 # Set the title and description for your Streamlit app
 st.title("PDF Splitter")
@@ -16,6 +18,7 @@ st.write("This app allows you to split a PDF into smaller chunks.")
 pdf_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
 if pdf_file is not None:
+    file_name = pdf_file.name
     # Get the maximum chunk size from the user
     max_chunk_size = st.number_input("Maximum Chunk Size (MB)", min_value=1, value=100)
 
@@ -63,6 +66,6 @@ if pdf_file is not None:
     if 'pdf_chunks' in st.session_state and st.session_state['pdf_chunks']:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            add_to_zip(zip_file, st.session_state['pdf_chunks'])
+            add_to_zip(zip_file, st.session_state['pdf_chunks'], file_name)
         zip_buffer.seek(0)
         st.download_button("Download All Chunks", zip_buffer, file_name="pdf_chunks.zip", mime="application/zip")
