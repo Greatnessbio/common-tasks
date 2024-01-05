@@ -2,21 +2,22 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import io
 
 # Function to load and process the data
 def load_data(uploaded_file):
     try:
         # Read the entire file into a string
-        file_content = uploaded_file.read().decode("utf-8")
+        file_content = uploaded_file.getvalue().decode("utf-8")
         
         # Split the file content by the section headers
         sections = file_content.split('# ----------------------------------------')
         
         # Parse each section separately
-        users_data = pd.read_csv(pd.compat.StringIO(sections[1]), skiprows=4, nrows=28)
-        new_users_data = pd.read_csv(pd.compat.StringIO(sections[2]), skiprows=3, nrows=28)
-        channel_group_data = pd.read_csv(pd.compat.StringIO(sections[3]), skiprows=3, nrows=8)
-        session_channel_data = pd.read_csv(pd.compat.StringIO(sections[4]), skiprows=3, nrows=8)
+        users_data = pd.read_csv(io.StringIO(sections[1]), skiprows=4, nrows=28)
+        new_users_data = pd.read_csv(io.StringIO(sections[2]), skiprows=3, nrows=28)
+        channel_group_data = pd.read_csv(io.StringIO(sections[3]), skiprows=3, nrows=8)
+        session_channel_data = pd.read_csv(io.StringIO(sections[4]), skiprows=3, nrows=8)
 
         return users_data, new_users_data, channel_group_data, session_channel_data
 
