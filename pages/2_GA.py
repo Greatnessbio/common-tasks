@@ -1,70 +1,32 @@
-import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
+import streamlit as st
 
-# Function to load and process the data
-def load_data(uploaded_file):
-    try:
-        # Read the entire file into a string
-        file_content = uploaded_file.getvalue().decode("utf-8")
-        
-        # Split the file content by the section headers
-        sections = file_content.split('# ----------------------------------------')
-        
-        # Parse each section separately
-        users_data = pd.read_csv(io.StringIO(sections[1]), skiprows=4, nrows=28)
-        new_users_data = pd.read_csv(io.StringIO(sections[2]), skiprows=3, nrows=28)
-        channel_group_data = pd.read_csv(io.StringIO(sections[3]), skiprows=3, nrows=8)
-        session_channel_data = pd.read_csv(io.StringIO(sections[4]), skiprows=3, nrows=8)
+# Load the entire CSV file
+df = pd.read_csv('your_file.csv', header=None)
 
-        return users_data, new_users_data, channel_group_data, session_channel_data
+# Initialize an empty dictionary to hold your datasets
+datasets = {}
 
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return None, None, None, None
+# Initialize variables to hold the current dataset and column names
+current_dataset = None
+column_names = None
 
-# Function to plot the users and new users graph
-def plot_users_graph(users_data, new_users_data):
-    plt.figure(figsize=(10, 5))
-    sns.lineplot(data=users_data, x='Nth day', y='Users', label='Users')
-    sns.lineplot(data=new_users_data, x='Nth day', y='New users', label='New Users')
-    plt.title('Daily Users and New Users Trend')
-    plt.xlabel('Nth Day')
-    plt.ylabel('Count')
-    st.pyplot(plt)
+# Iterate over the DataFrame by row
+for idx, row in df.iterrows():
+    # If this row contains metadata (identified by checking if the first cell starts with '#')
+    if str(row[0]).startswith('#'):
+        # This row is metadata, so update the current dataset and column names
+        current_dataset = row[0]
+        column_names = [row[0], row[1]]
+        # Create a new DataFrame for this dataset
+        datasets[current_dataset] = pd.DataFrame(columns=column_names)
+    elif current_dataset is not None:
+        # This row is data, so add it to the current dataset
+        datasets[current_dataset] = datasets[current_dataset].append(pd.Series(row.values, index=column_names), ignore_index=True)
 
-# Function to plot the channel distribution
-def plot_channel_distribution(data, title):
-    plt.figure(figsize=(10, 5))
-    sns.barplot(data=data, x=data.columns[1], y=data.columns[0])
-    plt.title(title)
-    plt.xlabel('Count')
-    plt.ylabel(data.columns[0])
-    st.pyplot(plt)
+# Now, 'datasets' is a dictionary that maps metadata to DataFrames
 
-# Streamlit app main body
-st.title('KPI Data Visualizer')
-
-uploaded_file = st.file_uploader("Upload CSV", type="csv")
-if uploaded_file:
-    users_data, new_users_data, channel_group_data, session_channel_data = load_data(uploaded_file)
-
-    if users_data is not None and new_users_data is not None:
-        # Visualization for Daily Users and New Users Data
-        st.subheader("Daily Users and New Users Trend")
-        plot_users_graph(users_data, new_users_data)
-
-    if channel_group_data is not None:
-        # Visualization for First User Default Channel Group
-        st.subheader("First User Default Channel Distribution")
-        plot_channel_distribution(channel_group_data, "New Users per Channel")
-
-    if session_channel_data is not None:
-        # Visualization for Session Default Channel Group
-        st.subheader("Session Default Channel Distribution")
-        plot_channel_distribution(session_channel_data, "Sessions per Channel")
-
-else:
-    st.write("Upload a CSV file to see the visualizations.")
+# Use Streamlit to display the datasets
+for metadata, dataset in datasets.items():
+    st.write(f"Dataset for {metadata}:")
+    st.dataframe(dataset)
