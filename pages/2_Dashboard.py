@@ -14,16 +14,4 @@ if uploaded_file is not None:
 
     # Display the DataFrame and visualizations
     st.subheader("Top Pages")
-    st.table(df[["Page", "Clicks", "Impressions", "CTR", "Position"]].head(10))
-
-    st.subheader("Clicks")
-    st.bar_chart(df["Clicks"])
-
-    st.subheader("Impressions")
-    st.line_chart(df["Impressions"])
-
-    st.subheader("CTR")
-    st.area_chart(df["CTR"])
-
-    st.subheader("Position")
-    st.scatter_chart(df["Position"], df["Impressions"])
+    st.table(df.head(10))  # Display the first 10 rows of the DataFrame
