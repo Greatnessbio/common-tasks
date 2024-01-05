@@ -5,16 +5,24 @@ import seaborn as sns
 
 # Function to load and process the data
 def load_data(uploaded_file):
-    # Read the CSV file
-    df = pd.read_csv(uploaded_file)
+    try:
+        # Read the entire file into a string
+        file_content = uploaded_file.read().decode("utf-8")
+        
+        # Split the file content by the section headers
+        sections = file_content.split('# ----------------------------------------')
+        
+        # Parse each section separately
+        users_data = pd.read_csv(pd.compat.StringIO(sections[1]), skiprows=4, nrows=28)
+        new_users_data = pd.read_csv(pd.compat.StringIO(sections[2]), skiprows=3, nrows=28)
+        channel_group_data = pd.read_csv(pd.compat.StringIO(sections[3]), skiprows=3, nrows=8)
+        session_channel_data = pd.read_csv(pd.compat.StringIO(sections[4]), skiprows=3, nrows=8)
 
-    # Split the dataframe into different datasets based on your CSV structure
-    users_data = df.iloc[:28, :2]
-    new_users_data = df.iloc[30:58, :2]
-    channel_group_data = df.iloc[60:68, :2]
-    session_channel_data = df.iloc[70:78, :2]
+        return users_data, new_users_data, channel_group_data, session_channel_data
 
-    return users_data, new_users_data, channel_group_data, session_channel_data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return None, None, None, None
 
 # Function to plot the users and new users graph
 def plot_users_graph(users_data, new_users_data):
@@ -42,17 +50,20 @@ uploaded_file = st.file_uploader("Upload CSV", type="csv")
 if uploaded_file:
     users_data, new_users_data, channel_group_data, session_channel_data = load_data(uploaded_file)
 
-    # Visualization for Daily Users and New Users Data
-    st.subheader("Daily Users and New Users Trend")
-    plot_users_graph(users_data, new_users_data)
+    if users_data is not None and new_users_data is not None:
+        # Visualization for Daily Users and New Users Data
+        st.subheader("Daily Users and New Users Trend")
+        plot_users_graph(users_data, new_users_data)
 
-    # Visualization for First User Default Channel Group
-    st.subheader("First User Default Channel Distribution")
-    plot_channel_distribution(channel_group_data, "New Users per Channel")
+    if channel_group_data is not None:
+        # Visualization for First User Default Channel Group
+        st.subheader("First User Default Channel Distribution")
+        plot_channel_distribution(channel_group_data, "New Users per Channel")
 
-    # Visualization for Session Default Channel Group
-    st.subheader("Session Default Channel Distribution")
-    plot_channel_distribution(session_channel_data, "Sessions per Channel")
+    if session_channel_data is not None:
+        # Visualization for Session Default Channel Group
+        st.subheader("Session Default Channel Distribution")
+        plot_channel_distribution(session_channel_data, "Sessions per Channel")
 
 else:
     st.write("Upload a CSV file to see the visualizations.")
