@@ -19,4 +19,4 @@ st.subheader("CTR")
 st.area_chart(df["CTR"])
 
 st.subheader("Position")
-st.scatter_plot(df["Position"], df["Impressions"])
+st.scatter_chart(df["Position"], df["Impressions"])  # Use scatter_chart here
