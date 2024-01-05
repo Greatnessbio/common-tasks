@@ -1,26 +1,62 @@
 import pandas as pd
-import streamlit as st
+from io import StringIO
+import re
 
-# Upload the CSV file
-uploaded_file = st.file_uploader("Upload your CSV file here...", type='csv')
+# Your CSV data as a string
+csv_data = """
+# Your CSV data goes here
+"""
 
-if uploaded_file is not None:
-    # Read the entire CSV file
-    data = pd.read_csv(uploaded_file)
+# Split the CSV data into lines
+lines = csv_data.split('\n')
 
-    # Find the indices of the headers
-    headers = ["Nth day\tUsers", "Nth day\tNew users", "First user default channel group\tNew users", 
-               "Session default channel group\tSessions", "Session Google Ads campaign\tSessions", "Cohort\tLTV"]
-    indices = {header: data.index[data[0] == header][0] for header in headers}
+# Initialize an empty dictionary to hold the dataframes
+dataframes = {}
 
-    # Create a dictionary of DataFrames
-    dfs = {}
-    for i, header in enumerate(headers):
-        start = indices[header] + 1
-        end = indices[headers[i + 1]] if i + 1 < len(headers) else len(data)
-        dfs[header] = pd.DataFrame(data[start:end][0].str.split('\t').tolist(), columns=data.iloc[start - 1][0].split('\t'))
+# Initialize an empty string to hold the current section data
+section_data = ''
 
-    # Display the DataFrames
-    for header, df in dfs.items():
-        st.write(f"DataFrame for {header}:")
-        st.dataframe(df)
+# Initialize variables to hold the start and end dates
+start_date = None
+end_date = None
+
+# Process each line in the CSV data
+for line in lines:
+    # If the line starts with '#', it's a metadata line
+    if line.startswith('#'):
+        # If there's section data, create a dataframe from it
+        if section_data:
+            data = pd.read_csv(StringIO(section_data), skipinitialspace=True)
+            # If the dataframe has an 'Nth day' column, convert it to dates
+            if 'Nth day' in data.columns:
+                data['Nth day'] = pd.to_datetime(start_date) + pd.to_timedelta(data['Nth day'].astype(int), unit='D')
+            # Add the dataframe to the dictionary
+            dataframes[header] = data
+            # Clear the section data
+            section_data = ''
+        # Check if the line contains a start or end date
+        match = re.search(r'Start date: (\d+)', line)
+        if match:
+            start_date = pd.to_datetime(match.group(1), format='%Y%m%d')
+        match = re.search(r'End date: (\d+)', line)
+        if match:
+            end_date = pd.to_datetime(match.group(1), format='%Y%m%d')
+    else:
+        # If the line is not empty, it's a data line
+        if line.strip():
+            # If there's no section data, this line is a header
+            if not section_data:
+                header = line
+            # Add the line to the section data
+            section_data += line + '\n'
+
+# If there's section data left after processing all lines, create a dataframe from it
+if section_data:
+    data = pd.read_csv(StringIO(section_data), skipinitialspace=True)
+    # If the dataframe has an 'Nth day' column, convert it to dates
+    if 'Nth day' in data.columns:
+        data['Nth day'] = pd.to_datetime(start_date) + pd.to_timedelta(data['Nth day'].astype(int), unit='D')
+    # Add the dataframe to the dictionary
+    dataframes[header] = data
+
+# Now 'dataframes' is a dictionary where the keys are the headers and the values are the corresponding dataframes
