@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import traceback
 
 def parse_metadata(lines):
     metadata = {}
@@ -45,14 +46,14 @@ def process_csv(content):
     lines = content.split('\n')
     metadata = parse_metadata(lines[:10])  # adjust based on actual metadata lines in file
     sections = parse_sections(lines[10:], metadata)  # adjust based on actual data start in file
-    
+
     # Convert 'Nth day' to dates
     for section_name, df in sections.items():
         if 'Nth day' in df.columns:
             start_date = parse_date(metadata['start_date'])
             df['Nth day'] = pd.to_numeric(df['Nth day']).apply(lambda x: start_date + pd.Timedelta(days=x))
             df.rename(columns={'Nth day': 'Date'}, inplace=True)
-    
+
     return sections
 
 # Streamlit UI
@@ -69,5 +70,7 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+        traceback.print_exc()
+
 else:
     st.info("Please upload a CSV file.")
