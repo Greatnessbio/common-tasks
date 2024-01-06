@@ -2,12 +2,7 @@ import pandas as pd
 import streamlit as st
 from io import StringIO
 
-def read_section(file, start_line):
-    lines = []
-    line = file.readline()
-    while line.strip() != '':
-        lines.append(line)
-        line = file.readline()
+def read_section(lines):
     return pd.read_csv(StringIO(''.join(lines)), skipinitialspace=True)
 
 # Upload the CSV file
@@ -23,9 +18,13 @@ if uploaded_file is not None:
     while i < len(file_content):
         line = file_content[i].decode()
         if line.startswith('Nth day') or line.startswith('First user default channel group') or line.startswith('Session default channel group') or line.startswith('Session Google Ads campaign') or line.startswith('Cohort'):
-            df = read_section(file_content[i:], i)
+            section_lines = []
+            i += 1
+            while i < len(file_content) and file_content[i].decode().strip() != '':
+                section_lines.append(file_content[i].decode())
+                i += 1
+            df = read_section(section_lines)
             dfs[line.strip()] = df
-            i += len(df) + 2  # Skip the empty line after each section
         else:
             i += 1
 
