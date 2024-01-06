@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import StringIO
 
 def read_csv_sections(csv_content):
     sections = []
@@ -17,7 +18,9 @@ def read_csv_sections(csv_content):
         section_name = lines[start_index].split(': ')[-1].strip()
         
         # Create a DataFrame for the section
-        section_df = pd.read_csv('\n'.join(section_lines))
+        section_content = '\n'.join(section_lines)
+        section_file = StringIO(section_content)
+        section_df = pd.read_csv(section_file)
         
         # Add the section name and DataFrame to the list of sections
         sections.append((section_name, section_df))
@@ -34,4 +37,4 @@ if uploaded_file is not None:
     # Render each section's DataFrame using Streamlit
     for section_name, section_df in sections:
         st.subheader(section_name)
-        st.write(section_df.to_html(index=False, escape=False), unsafe_allow_html=True)
+        st.write(section_df)
