@@ -15,7 +15,10 @@ def parse_metadata(lines):
 
 def parse_date(date_str):
     print(f"Date string: {date_str}")  # Print the date string for debugging
-    return datetime.strptime(date_str, '%Y%m%d').date()
+    try:
+        return datetime.strptime(date_str, '%Y%m%d').date()
+    except ValueError:
+        return None
 
 def parse_sections(lines, metadata):
     sections = {}
@@ -52,6 +55,8 @@ def process_csv(content):
     for section_name, df in sections.items():
         if 'Nth day' in df.columns:
             start_date = parse_date(metadata['start_date'])
+            if start_date is None:
+                raise ValueError("Invalid start date format.")
             df['Nth day'] = pd.to_numeric(df['Nth day']).apply(lambda x: start_date + pd.Timedelta(days=x))
             df.rename(columns={'Nth day': 'Date'}, inplace=True)
 
