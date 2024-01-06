@@ -6,8 +6,10 @@ def parse_metadata(lines):
     metadata = {}
     for line in lines:
         if line.startswith('#'):
-            key, value = line.strip('# ').split(': ')
-            metadata[key.replace(' ', '_').lower()] = value
+            parts = line.strip('# ').split(': ')
+            if len(parts) == 2:
+                key, value = parts
+                metadata[key.replace(' ', '_').lower()] = value
     return metadata
 
 def parse_date(date_str):
@@ -17,40 +19,40 @@ def parse_sections(lines, metadata):
     sections = {}
     current_section = None
     section_data = []
+    headers = []
 
     for line in lines:
         if not line.strip() or line.startswith('#'):
-            # This is a blank line or a metadata line, skip it
-            continue
-        if ',' not in line:
-            # This looks like a section header
+            continue  # Skip metadata or empty lines
+        if ',' in line and not any(char.isdigit() for char in line):
+            # This is a header line
             if current_section and section_data:
-                # Save the previous section
-                sections[current_section] = pd.DataFrame(section_data[1:], columns=section_data[0])
-                section_data = []
+                sections[current_section] = pd.DataFrame(section_data, columns=headers)
             current_section = line.strip()
-        else:
+            section_data = []
+            headers = line.split(',')
+        elif ',' in line:
             # This is a data line
             section_data.append(line.split(','))
 
-    # Don't forget to add the last section
+    # Add the last section
     if current_section and section_data:
-        sections[current_section] = pd.DataFrame(section_data[1:], columns=section_data[0])
+        sections[current_section] = pd.DataFrame(section_data, columns=headers)
 
     return sections
 
 def process_csv(content):
     lines = content.split('\n')
-    metadata = parse_metadata(lines[:5])  # assuming the first 5 lines are metadata
-    start_date = parse_date(metadata['start_date'])
-    sections = parse_sections(lines[5:], metadata)
+    metadata = parse_metadata(lines[:10])  # adjust based on actual metadata lines in file
+    sections = parse_sections(lines[10:], metadata)  # adjust based on actual data start in file
     
     # Convert 'Nth day' to dates
     for section_name, df in sections.items():
         if 'Nth day' in df.columns:
-            df['Nth day'] = df['Nth day'].astype(int).apply(lambda x: start_date + pd.Timedelta(days=x))
+            start_date = parse_date(metadata['start_date'])
+            df['Nth day'] = pd.to_numeric(df['Nth day']).apply(lambda x: start_date + pd.Timedelta(days=x))
             df.rename(columns={'Nth day': 'Date'}, inplace=True)
-            
+    
     return sections
 
 # Streamlit UI
@@ -58,7 +60,6 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
 
 if uploaded_file is not None:
     try:
-        # Read the content of the file
         content = uploaded_file.getvalue().decode('utf-8')
         sections = process_csv(content)
 
