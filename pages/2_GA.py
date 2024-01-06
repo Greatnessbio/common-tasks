@@ -20,11 +20,12 @@ def read_csv_sections(csv_content):
         # Remove leading and trailing whitespaces from each line
         section_lines = [line.strip() for line in section_lines if not line.startswith('#')]
         
-        # Create a DataFrame for the section
-        section_df = pd.DataFrame([line.split(',') for line in section_lines], columns=section_lines[0].split(','))
-        
-        # Add the section name and DataFrame to the list of sections
-        sections.append((section_name, section_df))
+        # Create a DataFrame for the section if it contains data
+        if section_lines:
+            section_df = pd.DataFrame([line.split(',') for line in section_lines], columns=section_lines[0].split(','))
+            
+            # Add the section name and DataFrame to the list of sections
+            sections.append((section_name, section_df))
     
     return sections
 
