@@ -1,88 +1,72 @@
 import streamlit as st
 import pandas as pd
-from io import StringIO
 from datetime import datetime
 
-# Helper function to parse dates.
+def parse_metadata(lines):
+    metadata = {}
+    for line in lines:
+        if line.startswith('#'):
+            key, value = line.strip('# ').split(': ')
+            metadata[key.replace(' ', '_').lower()] = value
+    return metadata
+
 def parse_date(date_str):
-    return datetime.strptime(date_str.strip(), '%Y%m%d')
+    return datetime.strptime(date_str, '%Y%m%d').date()
 
-# Function to read each CSV section
-def read_csv_section(section_lines, start_date):
-    # Use the first non-empty line as the header
-    header_line = next(line for line in section_lines if line.strip())
-    headers = header_line.split(',')
-    
-    # Create DataFrame from section lines, skipping the header
-    data_lines = section_lines[section_lines.index(header_line) + 1:]
-    df = pd.read_csv(StringIO('\n'.join(data_lines)), header=None)
-    df.columns = headers
-
-    # Convert 'Nth day' to actual dates if it's in the DataFrame
-    if 'Nth day' in df.columns:
-        df['Date'] = df['Nth day'].apply(lambda x: start_date + pd.Timedelta(days=int(x)))
-
-    return df
-
-# Function to process the CSV file
-def process_csv_file(file_content):
-    sections_data = {}
-    lines = file_content.strip().split('\n')
-    section_lines = []
-    start_date = None
+def parse_sections(lines, metadata):
+    sections = {}
+    current_section = None
+    section_data = []
 
     for line in lines:
-        if line.startswith('# Start date:'):
-            # If there's an existing section, process it before starting a new one
-            if section_lines:
-                df = read_csv_section(section_lines, start_date)
-                sections_data[section_name] = df
-                section_lines = []  # Reset the section lines
-
-            # Parse the start date for the new section
-            start_date_str = line.split(': ')[1]
-            start_date = parse_date(start_date_str)
-        elif line.startswith('#'):
-            # Skip all other metadata lines
+        if not line.strip() or line.startswith('#'):
+            # This is a blank line or a metadata line, skip it
             continue
-        elif not line.strip():
-            # Skip empty lines
-            continue
-        elif ',' in line:
-            # This is a header or a data line
-            if section_lines and not any(char.isdigit() for char in line):
-                # If there are already lines captured and this line is a header (no digits), it starts a new section
-                df = read_csv_section(section_lines, start_date)
-                sections_data[section_name] = df
-                section_lines = [line]  # Start new section with the header
-            else:
-                # Otherwise, it's part of the current section
-                section_lines.append(line)
-            section_name = line  # Update the current section name
+        if ',' not in line:
+            # This looks like a section header
+            if current_section and section_data:
+                # Save the previous section
+                sections[current_section] = pd.DataFrame(section_data[1:], columns=section_data[0])
+                section_data = []
+            current_section = line.strip()
         else:
-            # It's a continuation of the data
-            section_lines.append(line)
+            # This is a data line
+            section_data.append(line.split(','))
 
-    # Process the last section after the loop ends
-    if section_lines:
-        df = read_csv_section(section_lines, start_date)
-        sections_data[section_name] = df
+    # Don't forget to add the last section
+    if current_section and section_data:
+        sections[current_section] = pd.DataFrame(section_data[1:], columns=section_data[0])
 
-    return sections_data
+    return sections
 
-# File uploader in Streamlit
+def process_csv(content):
+    lines = content.split('\n')
+    metadata = parse_metadata(lines[:5])  # assuming the first 5 lines are metadata
+    start_date = parse_date(metadata['start_date'])
+    sections = parse_sections(lines[5:], metadata)
+    
+    # Convert 'Nth day' to dates
+    for section_name, df in sections.items():
+        if 'Nth day' in df.columns:
+            df['Nth day'] = df['Nth day'].astype(int).apply(lambda x: start_date + pd.Timedelta(days=x))
+            df.rename(columns={'Nth day': 'Date'}, inplace=True)
+            
+    return sections
+
+# Streamlit UI
 uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
 
 if uploaded_file is not None:
     try:
-        file_content = uploaded_file.getvalue().decode('utf-8')
-        sections_data = process_csv_file(file_content)
+        # Read the content of the file
+        content = uploaded_file.getvalue().decode('utf-8')
+        sections = process_csv(content)
 
-        for section_name, df in sections_data.items():
-            st.write(f"Section: {section_name}")
+        for section_name, df in sections.items():
+            st.subheader(section_name)
             st.dataframe(df)
 
     except Exception as e:
-        st.error(f"Error processing file: {e}")
+        st.error(f"An error occurred: {e}")
 else:
     st.info("Please upload a CSV file.")
