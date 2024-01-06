@@ -34,4 +34,4 @@ if uploaded_file is not None:
     # Render each section's DataFrame using Streamlit
     for section_name, section_df in sections:
         st.subheader(section_name)
-        st.dataframe(section_df)
+        st.write(section_df.to_html(index=False, escape=False), unsafe_allow_html=True)
