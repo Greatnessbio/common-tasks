@@ -1,70 +1,58 @@
 import streamlit as st
 import pandas as pd
 from io import StringIO
-from datetime import datetime, timedelta
+from datetime import datetime
 
-def read_csv_sections(csv_content):
-    sections = []
-    lines = csv_content.strip().split('\n')
+def read_csv_section(section_lines):
+    # Parse metadata for start and end dates
+    metadata_lines = [line for line in section_lines if line.startswith('#')]
+    metadata = {line.split(': ')[0].strip('# '): line.split(': ')[1] for line in metadata_lines}
+    start_date = datetime.strptime(metadata['Start date'], '%Y%m%d')
+    section_lines = [line for line in section_lines if not line.startswith('#')]
 
-    # Extract start and end dates from metadata
-    start_date_str = next((line.split(': ')[-1].strip() for line in lines if line.startswith('Start date:')), None)
-    end_date_str = next((line.split(': ')[-1].strip() for line in lines if line.startswith('End date:')), None)
+    # Create DataFrame from section lines
+    section_content = '\n'.join(section_lines)
+    section_file = StringIO(section_content)
+    df = pd.read_csv(section_file, sep='\t', header=None)
+    df.columns = ['Nth day', 'Value']
 
-    if not start_date_str or not end_date_str:
-        raise ValueError("Start date or end date not found in the file.")
+    # Convert 'Nth day' to actual dates
+    df['Date'] = df['Nth day'].apply(lambda x: start_date + pd.Timedelta(days=int(x)))
 
-    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    return df, metadata
 
-    # Define the section headers
-    section_headers = [
-        "Nth day\tUsers",
-        "Nth day\tNew users",
-        "First user default channel group\tNew users",
-        "Session default channel group\tSessions",
-        "Session Google Ads campaign\tSessions",
-        "Cohort\tLTV"
-    ]
+def process_csv_file(file_content):
+    sections_data = {}
+    lines = file_content.strip().split('\n')
+    section_starts = [i for i, line in enumerate(lines) if line.startswith('# Start date:')]
 
-    # Find lines where new sections start
-    start_indices = [i for i, line in enumerate(lines) if any(header in line for header in section_headers)]
-    start_indices.append(len(lines))  # Add end of file as the last index
+    # Add end of file as the last index for the last section
+    section_starts.append(len(lines))
 
-    # Iterate over each section
-    for i in range(len(start_indices) - 1):
-        start_index = start_indices[i]
-        end_index = start_indices[i + 1] - 1  # Adjust for section header
-        section_lines = lines[start_index+1:end_index]  # Skip the header line
+    for i in range(len(section_starts) - 1):
+        start_idx = section_starts[i]
+        end_idx = section_starts[i + 1]
+        section_name = lines[start_idx + 1]
+        
+        if section_name.strip() != '':
+            df, metadata = read_csv_section(lines[start_idx:end_idx])
+            sections_data[section_name] = {'DataFrame': df, 'Metadata': metadata}
 
-        # Extract the section name
-        section_name = lines[start_index]
-
-        # Convert 'Nth day' to actual dates
-        section_df = pd.read_csv(StringIO('\n'.join(section_lines)), delimiter='\t', header=None)
-        section_df.columns = ['Nth day', 'Value']
-        section_df['Date'] = section_df['Nth day'].apply(lambda x: start_date + timedelta(days=int(x)-1))
-
-        # Add the section to the list
-        sections.append((section_name, section_df))
-
-    return sections, start_date_str, end_date_str
+    return sections_data
 
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
 
 if uploaded_file is not None:
     try:
-        csv_content = uploaded_file.read().decode('utf-8')
-        sections, start_date, end_date = read_csv_sections(csv_content)
-        
-        st.write(f"Start Date: {start_date}")
-        st.write(f"End Date: {end_date}")
+        file_content = uploaded_file.read().decode('utf-8')
+        sections_data = process_csv_file(file_content)
 
-        # Render each section's DataFrame using Streamlit
-        for section_name, section_df in sections:
-            st.subheader(section_name)
-            st.write(section_df)
+        for section_name, data in sections_data.items():
+            st.write(f"Section: {section_name}")
+            st.write(f"Metadata: {data['Metadata']}")
+            st.dataframe(data['DataFrame'])
+
     except Exception as e:
         st.error(f"Error processing file: {e}")
 else:
