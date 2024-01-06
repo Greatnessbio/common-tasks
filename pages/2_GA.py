@@ -14,6 +14,7 @@ def parse_metadata(lines):
     return metadata
 
 def parse_date(date_str):
+    print(f"Date string: {date_str}")  # Print the date string for debugging
     return datetime.strptime(date_str, '%Y%m%d').date()
 
 def parse_sections(lines, metadata):
