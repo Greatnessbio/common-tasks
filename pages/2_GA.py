@@ -7,17 +7,25 @@ def read_csv_section(section_lines):
     # Parse metadata for start and end dates
     metadata_lines = [line for line in section_lines if line.startswith('#')]
     metadata = {line.split(': ')[0].strip('# '): line.split(': ')[1] for line in metadata_lines}
-    start_date = datetime.strptime(metadata['Start date'], '%Y%m%d')
-    section_lines = [line for line in section_lines if not line.startswith('#')]
-
-    # Create DataFrame from section lines
-    section_content = '\n'.join(section_lines)
-    section_file = StringIO(section_content)
-    df = pd.read_csv(section_file, sep='\t', header=None)
-    df.columns = ['Nth day', 'Value']
-
-    # Convert 'Nth day' to actual dates
-    df['Date'] = df['Nth day'].apply(lambda x: start_date + pd.Timedelta(days=int(x)))
+    start_date = datetime.strptime(metadata['Start date'], '%Y%m%d')  # Ensure the format matches 'YYYYMMDD'
+    
+    # Filter out metadata and empty lines
+    section_content = [line for line in section_lines if not line.startswith('#') and line.strip()]
+    
+    # Check if there is content to create a DataFrame
+    if section_content:
+        # Assume the second line is the header, based on the provided file structure
+        header = section_content[0]
+        data_lines = section_content[1:]
+        
+        # Create DataFrame from section lines
+        df = pd.read_csv(StringIO('\n'.join(data_lines)), sep='\t', header=None, names=header.split('\t'))
+        
+        # Convert 'Nth day' to actual dates if it's in the DataFrame
+        if 'Nth day' in df.columns:
+            df['Date'] = df['Nth day'].apply(lambda x: start_date + pd.Timedelta(days=int(x)))
+    else:
+        df = pd.DataFrame()
 
     return df, metadata
 
@@ -32,9 +40,9 @@ def process_csv_file(file_content):
     for i in range(len(section_starts) - 1):
         start_idx = section_starts[i]
         end_idx = section_starts[i + 1]
-        section_name = lines[start_idx + 1]
+        section_name = lines[start_idx + 1].strip()
         
-        if section_name.strip() != '':
+        if section_name:
             df, metadata = read_csv_section(lines[start_idx:end_idx])
             sections_data[section_name] = {'DataFrame': df, 'Metadata': metadata}
 
