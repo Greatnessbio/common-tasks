@@ -10,6 +10,42 @@ color_schemes = {
     "Red": "Reds",
     "Green": "Greens",
     "Purple": "Purples",
+    "Cool": "cool",
+    "Spectral": "nipy_spectral",
+    "Cubehelix": "cubehelix",
+    "Oranges": "Oranges",
+    "Plasma": "plasma",
+    "Inferno": "inferno",
+    "Pastel": "Pastel1",
+    "Accent": "Accent",
+    "Dark2": "Dark2",
+    "Set1": "Set1",
+    "Set2": "Set2",
+    "Set3": "Set3",
+    "tab10": "tab10",
+    "tab20": "tab20",
+    "tab20b": "tab20b",
+    "tab20c": "tab20c",
+    "twilight": "twilight",
+    "twilight_shifted": "twilight_shifted",
+    "hsv": "hsv",
+    "flag": "flag",
+    "prism": "prism",
+    "ocean": "ocean",
+    "gist_earth": "gist_earth",
+    "terrain": "terrain",
+    "gist_stern": "gist_stern",
+    "gnuplot": "gnuplot",
+    "gnuplot2": "gnuplot2",
+    "CMRmap": "CMRmap",
+    "cubehelix": "cubehelix",
+    "brg": "brg",
+    "gist_rainbow": "gist_rainbow",
+    "rainbow": "rainbow",
+    "jet": "jet",
+    "turbo": "turbo",
+    "nipy_spectral": "nipy_spectral",
+    "gist_ncar": "gist_ncar",
 }
 
 # Streamlit UI
@@ -34,6 +70,7 @@ if st.button("Generate Word Cloud"):
             height=400,
             colormap=color_schemes[selected_color_scheme],
             stopwords=STOPWORDS if remove_stopwords else None,
+            max_words=100,  # You can adjust the number of words displayed
         )
 
         # Generate the word cloud
@@ -57,4 +94,3 @@ st.write("- Select a color scheme for the word cloud.")
 # Footer
 st.markdown("---")
 st.write("Created by Your Name")
-
