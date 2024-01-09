@@ -3,14 +3,13 @@ import pandas as pd
 import os
 
 def process_file(uploaded_file):
-    # Determine the file extension
     file_extension = os.path.splitext(uploaded_file.name)[1]
 
-    # Read the Excel file into a DataFrame
     if file_extension.lower() == '.xlsx':
         df = pd.read_excel(uploaded_file, engine='openpyxl')
     elif file_extension.lower() == '.xls':
-        df = pd.read_excel(uploaded_file, engine='xlrd')
+        # For '.xls' files, use an appropriate engine like 'xlrd' (version 1.2.0 or earlier)
+        df = pd.read_excel(uploaded_file, engine='xlrd')  # Ensure you have the compatible version of xlrd
 
     # Process and split the DataFrame
     for name, group in df.groupby('ColumnName'):
