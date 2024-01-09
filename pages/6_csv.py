@@ -1,71 +1,49 @@
-import streamlit as st
-import pandas as pd
 import os
-from pathlib import Path
+import pandas as pd
+import streamlit as st
 import base64
 
-def process_file(uploaded_file):
-    file_extension = os.path.splitext(uploaded_file.name)[1]
+def get_file_content_as_base64(path):
+    """Encode file content to base64."""
+    with open(path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-    if file_extension.lower() == '.xlsx':
-        xls = pd.read_excel(uploaded_file, sheet_name=None)
-        sheet_names = list(xls.keys())
-    elif file_extension.lower() == '.xls':
-        # For '.xls' files, use an appropriate engine like 'xlrd' (version 1.2.0 or earlier)
-        xls = pd.read_excel(uploaded_file, sheet_name=None, engine='xlrd') # Ensure you have the compatible version of xlrd
-        sheet_names = list(xls.keys())
-    else:
-        st.error("Invalid file format. Please upload a valid Excel file.")
-        return
+def process_xls(file):
+    """Process each sheet in the xls file and save as individual CSV files."""
+    # Load the Excel file
+    xls = pd.ExcelFile(file, engine='xlrd')
 
-    csv_folder = 'csv_files'
-    os.makedirs(csv_folder, exist_ok=True)
+    # Create a directory to store CSV files
+    csv_dir = "csv_files"
+    os.makedirs(csv_dir, exist_ok=True)
 
-    for sheet_name, df in xls.items():
-        csv_filename = f"{csv_folder}/{sheet_name}.csv"
-        df.to_csv(csv_filename, index=False)
+    # Process each sheet
+    for sheet_name in xls.sheet_names:
+        df = pd.read_excel(xls, sheet_name=sheet_name)
+        csv_file = os.path.join(csv_dir, f"{sheet_name}.csv")
+        df.to_csv(csv_file, index=False)
+        st.success(f"CSV file saved: {csv_file}")
 
-    st.success(f"CSV files saved in folder: {csv_folder}")
+    return csv_dir
 
 def main():
-    st.title("Excel to CSV Converter")
+    """Main function for the Streamlit app."""
+    st.title("XLS to CSV Converter")
 
-    # File uploader that accepts both .xlsx and .xls files
-    uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx", "xls"])
+    uploaded_file = st.file_uploader("Upload your XLS file", type=["xls"])
 
     if uploaded_file is not None:
-        process_file(uploaded_file)
+        csv_dir = process_xls(uploaded_file)
 
-        # Provide a download link for the CSV files
-        csv_folder = 'csv_files'
-        csv_files = os.listdir(csv_folder)
-        if csv_files:
-            with st.expander("Download CSV Files"):
-                for csv_file in csv_files:
-                    csv_path = os.path.join(csv_folder, csv_file)
-                    if "[" in csv_file and "]" in csv_file:
-                        csv_file_name = csv_file.split("[")[1].split("]")[0]
-                    else:
-                        csv_file_name = csv_file
-                    st.markdown(f"[{csv_file_name}]({csv_path})")
-
-            # Add a download all button
-            csv_files_paths = [os.path.join(csv_folder, csv_file) for csv_file in csv_files]
-            all_csv_zip = 'all_csv_files.zip'
-            Path(all_csv_zip).unlink(missing_ok=True)  # Remove existing zip file if it exists
-
-            # Create a zip file containing all CSV files
-            os.system(f'zip -j {all_csv_zip} {" ".join(csv_files_paths)}')
-
-            # Provide a download link for the zip file
-            with open(all_csv_zip, "rb") as f:
-                zip_file_content = f.read()
-            st.download_button(
-                label="Download All CSV Files as ZIP",
-                data=zip_file_content,
-                file_name=all_csv_zip,
-                key="download_zip_button",
-            )
+        # Provide download links for the CSV files
+        st.write("Download CSV Files:")
+        csv_files = os.listdir(csv_dir)
+        for file in csv_files:
+            file_path = os.path.join(csv_dir, file)
+            b64 = get_file_content_as_base64(file_path)
+            href = f'<a href="data:file/csv;base64,{b64}" download="{file}">Download {file}</a>'
+            st.markdown(href, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
