@@ -11,3 +11,4 @@ lxml
 matplotlib
 seaborn
 openpyxl
+xlrd
