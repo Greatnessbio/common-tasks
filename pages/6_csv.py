@@ -11,7 +11,7 @@ def process_file(uploaded_file):
     elif file_extension.lower() == '.xls':
         # For '.xls' files, use an appropriate engine like 'xlrd' (version 1.2.0 or earlier)
         xls = pd.read_excel(uploaded_file, engine='xlrd') # Ensure you have the compatible version of xlrd
-        sheet_names = xls.sheet_names()
+        sheet_names = xls.sheet_names
     else:
         st.error("Invalid file format. Please upload a valid Excel file.")
         return
