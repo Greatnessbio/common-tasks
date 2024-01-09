@@ -38,7 +38,7 @@ def main():
         csv_folder = 'csv_files'
         csv_files = os.listdir(csv_folder)
         if csv_files:
-            with st.beta_expander("Download CSV Files"):
+            with st.expander("Download CSV Files"):
                 for csv_file in csv_files:
                     csv_path = os.path.join(csv_folder, csv_file)
                     st.markdown(f"[{csv_file}]({csv_path})")
