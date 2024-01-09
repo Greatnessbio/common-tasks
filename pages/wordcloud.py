@@ -57,39 +57,35 @@ text = st.text_area("Paste your paragraphs here:")
 # Checkbox to remove stop words
 remove_stopwords = st.checkbox("Remove Stop Words")
 
-# Select color scheme
-selected_color_scheme = st.selectbox("Select Color Scheme:", list(color_schemes.keys()))
-
-# Generate word cloud
-if st.button("Generate Word Cloud"):
+# Generate word clouds for all color schemes
+if st.button("Generate Word Clouds"):
     if text:
-        # Create a WordCloud object
-        wordcloud = WordCloud(
-            background_color="white",
-            width=800,
-            height=400,
-            colormap=color_schemes[selected_color_scheme],
-            stopwords=STOPWORDS if remove_stopwords else None,
-            max_words=100,  # You can adjust the number of words displayed
-        )
+        for color_scheme_name, color_scheme in color_schemes.items():
+            # Create a WordCloud object
+            wordcloud = WordCloud(
+                background_color="white",
+                width=800,
+                height=400,
+                colormap=color_scheme,
+                stopwords=STOPWORDS if remove_stopwords else None,
+                max_words=100,  # You can adjust the number of words displayed
+            )
 
-        # Generate the word cloud
-        wordcloud.generate(text)
+            # Generate the word cloud
+            wordcloud.generate(text)
 
-        # Display the word cloud using matplotlib
-        st.pyplot(plt.figure(figsize=(10, 5)))
-        plt.imshow(wordcloud, interpolation="bilinear")
-        plt.axis("off")
-        st.pyplot(plt)
+            # Display the word cloud with the color scheme name
+            st.subheader(f"Word Cloud ({color_scheme_name})")
+            st.image(wordcloud.to_array(), use_column_width=True, channels="RGB")
 
     else:
-        st.warning("Please enter some text to generate a word cloud.")
+        st.warning("Please enter some text to generate word clouds.")
 
 # Information and tips
 st.markdown("### Tips:")
 st.write("- Paste your paragraphs into the text area.")
 st.write("- You can choose to remove stop words to filter common words.")
-st.write("- Select a color scheme for the word cloud.")
+st.write("- Click the 'Generate Word Clouds' button to display word clouds for all color schemes.")
 
 # Footer
 st.markdown("---")
